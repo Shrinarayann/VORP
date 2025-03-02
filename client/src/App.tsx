@@ -1,14 +1,16 @@
-
-import { Button } from "./components/ui/button"
-import { Progress } from "./components/ui/progress"
-
+import { BrowserRouter, Routes, Route } from "react-router-dom"
+import MapPage from './pages/MapPage'
+import LocationProvider from './context/LocationContext'
 
 const App = () => {
   return (
-    <div className="p-5 space-y-2 bg-gray-100">
-      return <Button variant="destructive">Destructive</Button>
-      <Progress value={33} />
-    </div>
+    <LocationProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<MapPage />}></Route>
+        </Routes> 
+      </ BrowserRouter>
+    </LocationProvider>
   )
 }
 

@@ -49,7 +49,12 @@ module.exports = {
     				'3': 'hsl(var(--chart-3))',
     				'4': 'hsl(var(--chart-4))',
     				'5': 'hsl(var(--chart-5))'
-    			}
+    			},
+				priWhite: "#FFFFFF",
+				secBlue: "#003049",
+				AccYellow: '#D6AE00',
+				BlackText: '#000000',
+				WhiteText: '#FFFFFF',
     		}
     	}
     },
