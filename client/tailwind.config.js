@@ -55,6 +55,7 @@ module.exports = {
 				AccYellow: '#D6AE00',
 				BlackText: '#000000',
 				WhiteText: '#FFFFFF',
+				LightBlue: "#ADD8E6"
     		}
     	}
     },

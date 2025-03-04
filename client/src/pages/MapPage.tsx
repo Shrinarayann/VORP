@@ -198,14 +198,14 @@ const MapPage: React.FC = () => {
               <div className="flex space-x-2 mb-4">
                 <Button
                   onClick={() => setActiveTab("points")}
-                  className={activeTab === "points" ? "btn-solid" : "btn-outline"}
+                  className={activeTab === "points" ? "btn-solid bg-LightBlue text-BlackText hover:text-white hover:bg-LightBlue" : "btn-outline  hover:bg-LightBlue"}
                 >
                   Points
                 </Button>
 
                 <Button
                   onClick={() => setActiveTab("vehicles")}
-                  className={activeTab === "vehicles" ? "btn-solid" : "btn-outline"}
+                  className={activeTab === "vehicles" ? "btn-solid  bg-LightBlue text-BlackText hover:text-white hover:bg-LightBlue" : "btn-outline hover:text-white hover:bg-LightBlue"}
                 >
                   Vehicles
                 </Button>
@@ -253,7 +253,7 @@ const MapPage: React.FC = () => {
                           <div key={index} className="flex gap-2 items-center py-1 mb-2">
                             <div className="border p-2 w-full rounded-md bg-white">
                               <div className="font-medium">
-                                Point {index + 1} {depotIndex === index && <span className="text-green-500 font-bold">(Depot)</span>}
+                                Point {index + 1} {depotIndex === index && <span className="text-secBlue font-bold">(Depot)</span>}
                               </div>
                               <div className="text-sm">
                                 Lat: {item.latitude.toFixed(4)}, Lng: {item.longitude.toFixed(4)}
@@ -261,7 +261,7 @@ const MapPage: React.FC = () => {
                               <div className="text-xs text-gray-500">Demand: {item.capacity}</div>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <Button className="bg-blue-500 text-white" onClick={() => setDepotIndex(index)}>
+                              <Button className="bg-LightBlue text-BlackText hover:text-WhiteText" onClick={() => setDepotIndex(index)}>
                                 Set as Depot
                               </Button>
                               <Button className="bg-red-500 text-white" onClick={() => handleDeletePoint(index)}>
