@@ -15,7 +15,6 @@ interface SavedRoutesProps {
 const SavedRoutes: React.FC<SavedRoutesProps> = ({ onSelectRoute }) => {
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
 
-  // Simulate an API call with dummy data
   useEffect(() => {
     const dummyRoutes: SavedRoute[] = [
       {

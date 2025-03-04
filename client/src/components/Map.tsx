@@ -14,7 +14,6 @@ interface MapProps {
 }
 
 const Map: React.FC<MapProps> = ({ locations }) => {
-  // Optionally, set the map center based on the first location, or fallback to a default center
   const defaultCenter: [number, number] = locations.length > 0
     ? [locations[0].latitude, locations[0].longitude]
     : [51.505, -0.09];
