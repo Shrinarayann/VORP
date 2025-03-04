@@ -196,19 +196,19 @@ const MapPage: React.FC = () => {
             <div className="w-96 p-4 border-l border-gray-300">
               {/* Tab Header */}
               <div className="flex space-x-2 mb-4">
-              <Button
-              onClick={() => setActiveTab("points")}
-              className={activeTab === "points" ? "btn-solid" : "btn-outline"}
+                <Button
+                  onClick={() => setActiveTab("points")}
+                  className={activeTab === "points" ? "btn-solid" : "btn-outline"}
                 >
-                Points
-              </Button>
+                  Points
+                </Button>
 
                 <Button
-              onClick={() => setActiveTab("vehicles")}
-              className={activeTab === "vehicles" ? "solid" : "outline"}
+                  onClick={() => setActiveTab("vehicles")}
+                  className={activeTab === "vehicles" ? "btn-solid" : "btn-outline"}
                 >
-                Points
-              </Button>
+                  Vehicles
+                </Button>
               </div>
 
               {/* Tab Content */}
@@ -282,16 +282,12 @@ const MapPage: React.FC = () => {
                   <div className="flex flex-col space-y-2 my-2">
                     <Input
                       placeholder="Vehicle Capacity"
-                      type="number"
-                      value={vehicleCapacity}
                       onChange={(e) => setVehicleCapacity(Number(e.target.value))}
                       className="bg-secBlue text-priWhite"
                     />
                     <div className="flex space-x-2">
                       <Input
                         placeholder="Quantity"
-                        type="number"
-                        value={batchQuantity}
                         onChange={(e) => setBatchQuantity(Number(e.target.value))}
                         className="w-1/2 bg-secBlue text-priWhite"
                       />
@@ -300,7 +296,7 @@ const MapPage: React.FC = () => {
                       </Button>
                     </div>
                     <Button className="bg-AccYellow text-priWhite" onClick={handleAddVehicle}>
-                      Add Vehicle
+                      Add Single
                     </Button>
                   </div>
                   <div className="mt-4">
