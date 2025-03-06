@@ -19,16 +19,18 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onSelectRoute }) => {
     const dummyRoutes: SavedRoute[] = [
       {
         id: 1,
-        name: 'Morning Route',
+        name: 'Sample Location 1',
         locations: [
-          { latitude: 51.505, longitude: -0.09, capacity: 33 },
-          { latitude: 51.51, longitude: -0.1, capacity: 20 },
-          { latitude: 51.515, longitude: -0.095, capacity: 15 },
+          { latitude: 12.951507, longitude: 80.140099, capacity: 33 }, 
+          { latitude: 12.751581, longitude: 80.203654, capacity: 20 }, 
+          { latitude: 12.923471, longitude: 80.146346 , capacity: 15 }, 
+          { latitude: 12.912298, longitude: 80.228316 , capacity: 15 },
+          { latitude: 12.912298, longitude: 80.228316 , capacity: 15 },
         ],
       },
       {
         id: 2,
-        name: 'Evening Route',
+        name: 'Sample Location 2',
         locations: [
           { latitude: 51.5, longitude: -0.08, capacity: 40 },
           { latitude: 51.52, longitude: -0.12, capacity: 15 },
@@ -42,7 +44,7 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onSelectRoute }) => {
 
   return (
     <div className="saved-routes-list p-2">
-      <h2 className="text-lg font-semibold mb-2">Saved Routes</h2>
+      <h2 className="text-lg font-semibold mb-2">Saved Locations</h2>
       {savedRoutes.length === 0 ? (
         <p>No saved routes found.</p>
       ) : (

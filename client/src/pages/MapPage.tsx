@@ -34,6 +34,9 @@ const MapPage: React.FC = () => {
   // For the collapsible saved routes sidebar on the left
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
+  // Add this state near your other state declarations
+  const [calculatedRoutes, setCalculatedRoutes] = useState<{[key: string]: [number, number][]} | null>(null);
+
   // When a saved route is selected, update the current map points.
   const handleSavedRouteSelect = (route: SavedRoute) => {
     setLocations(route.locations);
@@ -107,58 +110,39 @@ const MapPage: React.FC = () => {
     }
 
     try {
-      // Build coordinates array in [longitude, latitude] order
-      const coordinates = Locations.map(loc => [loc.longitude, loc.latitude]);
-
-      // Call OpenRouteService Matrix API to get distance matrix
-      const orsResponse = await fetch('https://api.openrouteservice.org/v2/matrix/driving-car', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
-          'Content-Type': 'application/json',
-          'Authorization': '5b3ce3597851110001cf62481d030c79465247dca04d9e7eceebc5f8'
-        },
-        body: JSON.stringify({
-          locations: coordinates,
-          metrics: ["distance"],
-          units: "km"
-        })
-      });
-      const orsData = await orsResponse.json();
-      console.log("OpenRouteService Data:", orsData);
-
-      // Extract the distance matrix (assuming the API returns a "distances" property)
-      const distance_matrix = orsData.distances;
-      
-      // Build demands array: for each point, if it's the depot, demand is 0; otherwise use the point's capacity.
-      const demands = Locations.map((point, index) =>
-        index === depotIndex ? 0 : point.capacity
-      );
-
-      // Build vehicle capacities array
-      const vehicle_capacities = vehicles.map(v => v.capacity);
-
-      // Construct the payload for the backend CVRP solver
-      const payload = {
-        distance_matrix,
-        demands,
-        vehicle_capacities,
+      // Format the data according to the required structure
+      const formattedData = {
+        locations: Locations.map(loc => [loc.longitude, loc.latitude]),
         num_vehicles: vehicles.length,
-        depot: depotIndex
+        depot: depotIndex,
+        capacities: vehicles.map(v => v.capacity),
+        demands: Locations.map((point, index) => 
+          index === depotIndex ? 0 : point.capacity
+        )
+      };
+      
+      console.log("API Request Data:", formattedData);
+
+      // For now, simulate the API response
+      // In a real implementation, replace this with your actual API call
+      const mockResponse = {
+        calculated_routes: {
+          "0": [
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude],
+            ...formattedData.locations.slice(0, 2),
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude]
+          ],
+          "1": [
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude],
+            ...formattedData.locations.slice(2),
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude]
+          ]
+        }
       };
 
-      console.log("Payload for CVRP Solver:", payload);
-
-      // Send the payload to the backend /api/solve endpoint
-      const solveResponse = await fetch('http://localhost:5000/api/solve', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-      const solveResult = await solveResponse.json();
-      console.log('Solve result:', solveResult);
+      // Set the calculated routes to state to trigger map update
+      setCalculatedRoutes(mockResponse.calculated_routes);
+      
     } catch (error) {
       console.error("Error in calculating routes:", error);
     }
@@ -189,7 +173,7 @@ const MapPage: React.FC = () => {
             {/* Map Section */}
             <div className="p-4 flex-grow">
               <h1 className="text-2xl font-semibold py-2">Route Optimizer</h1>
-              <Map locations={Locations} />
+              <Map locations={Locations} calculatedRoutes={calculatedRoutes} />
             </div>
 
             {/* Right Sidebar for Inputs (Points & Vehicles) */}
@@ -325,7 +309,7 @@ const MapPage: React.FC = () => {
               {/* Calculate Routes Button: Visible if at least 2 points and at least 1 vehicle */}
               {(Locations.length >= 2 && vehicles.length >= 1) && (
                 <div className="mt-4">
-                  <Button className="bg-green-500 text-white" onClick={handleCalculateRoutes}>
+                  <Button className="bg-AccYellow text-white" onClick={handleCalculateRoutes}>
                     Calculate Routes
                   </Button>
                 </div>
