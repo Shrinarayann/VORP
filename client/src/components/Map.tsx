@@ -78,7 +78,6 @@ const Map: React.FC<MapProps> = ({ locations }) => {
         zoom={12} 
         scrollWheelZoom={true} 
         className="h-full w-full rounded-2xl"
-        style={{ height: '500px' }} // Explicit height needed
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
