@@ -2,9 +2,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS  # Import CORS
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
+import requests
+import distance_matrix
 
 app = Flask(__name__)
+port=8080
 CORS(app)  # Enable CORS for all routes
+# OSRM_URL=
 
 def solve_cvrp(data):
     # ... (existing code unchanged)
@@ -96,6 +100,7 @@ def solve_cvrp(data):
     
     result["total_distance"] = total_distance
     result["total_load"] = total_load
+
     
     return result
 
@@ -147,5 +152,72 @@ def example():
     result = solve_cvrp(data)
     return jsonify(result)
 
+@app.route('/api/v1/calculate_routes/', methods=['POST'])
+def calculate_routes():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+    
+    data = request.json
+    required_fields = ["locations", "num_vehicles", "depot", "capacities", "demands"]
+    
+    for field in required_fields:
+        if field not in data:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
+    
+    try:
+        locations = data["locations"]
+        num_vehicles = data["num_vehicles"]
+        depot = data["depot"]
+        vehicle_capacities = data["capacities"]
+        demands = data["demands"]
+
+        # Convert locations to a list of lists
+        osrm_coords = [[lon, lat] for lon, lat in locations]
+
+        print(type(osrm_coords))
+
+        dist_matrix=distance_matrix.distance_matrix_calc(osrm_coords)
+        print()
+        print(dist_matrix)
+        data = {
+        "distance_matrix": dist_matrix,
+        "demands": demands,
+        "vehicle_capacities": vehicle_capacities,
+        "num_vehicles": num_vehicles,
+        "depot": depot
+    }
+        res=solve_cvrp(data)
+        print(res)
+        # OR-Tools response
+    # response = {
+    #     'status': 'success',
+    #     'objective_value': 5,
+    #     'routes': [
+    #         {'vehicle_id': 0, 'route': [{'node': 0, 'load': 0}, {'node': 1, 'load': 50}, {'node': 0, 'load': 50}], 'distance': 2, 'load': 50},
+    #         {'vehicle_id': 1, 'route': [{'node': 0, 'load': 0}, {'node': 2, 'load': 75}, {'node': 3, 'load': 175}, {'node': 0, 'load': 175}], 'distance': 3, 'load': 175}
+    #     ],
+    #     'total_distance': 5,
+    #     'total_load': 225
+    # }
+
+    # Transform response into desired format
+        formatted_routes = {
+            int(route['vehicle_id']): [step['node'] for step in route['route']]
+            for route in res['routes']
+        }
+
+        for i in formatted_routes:
+            formatted_routes[i]=[locations[j] for j in formatted_routes[i]]
+        # Output the result
+        print(formatted_routes)
+
+            # Return a valid response
+        return jsonify({"message": "Success", "calculated_routes": formatted_routes}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    
+
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=port)
