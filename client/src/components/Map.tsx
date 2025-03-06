@@ -11,7 +11,6 @@ declare module "leaflet" {
   }
 }
 
-
 type Location = {
   latitude: number;
   longitude: number;
@@ -20,62 +19,82 @@ type Location = {
 
 interface MapProps {
   locations: Location[];
+  calculatedRoutes?: {[key: string]: [number, number][]};
 }
 
-// Faster routing implementation
-const FastRouting = () => {
+// Add markers and routing to the map
+const MapContent = ({ locations, calculatedRoutes }: MapProps) => {
   const map = useMap();
-  
+
+  // Create markers for each location
   useEffect(() => {
-    // Define the start and end points
-    const startPoint = L.latLng(12.925064, 80.116439);
-    const endPoint = L.latLng(12.918706, 80.052883);
-    
-    // Set bounds immediately to improve perceived performance
-    const bounds = L.latLngBounds([startPoint, endPoint]);
-    map.fitBounds(bounds, { padding: [50, 50] });
-    
-    // Simplified routing options for faster loading
-    const routingControl = L.Routing.control({
-      waypoints: [startPoint, endPoint],
-      lineOptions: {
-        styles: [{ color: '#3388ff', weight: 4 }],
-        extendToWaypoints: true,
-        missingRouteTolerance: 100 // Higher tolerance for faster routing
-      },
-      routeWhileDragging: false,
-      addWaypoints: false,
-      draggableWaypoints: false,
-      showAlternatives: false,
-      useZoomParameter: false,
-      // Simplified router
-      router: L.Routing.osrmv1({
-        serviceUrl: 'https://router.project-osrm.org/route/v1',
-        timeout: 5000,
-        geometryOnly: true
-      })
-    }).addTo(map);
-    
-    return () => {
-      map.removeControl(routingControl);
-    };
-  }, [map]);
-  
+    if (locations.length > 0) {
+      const bounds = new L.LatLngBounds([]);
+      locations.forEach(loc => {
+        bounds.extend([loc.latitude, loc.longitude]);
+      });
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [locations, map]);
+
+  // Create routes when calculatedRoutes changes
+  useEffect(() => {
+    // Clear previous routing controls
+    map.eachLayer((layer) => {
+      if (layer instanceof L.Routing.Control) {
+        map.removeLayer(layer);
+      }
+    });
+
+    if (!calculatedRoutes) return;
+
+    // Define different colors for each route
+    const colors = [
+      '#FF5733', // Orange-Red
+      '#33FF57', // Green
+      '#3357FF', // Blue
+      '#F033FF', // Purple
+      '#FF33A1', // Pink
+      '#33FFF6', // Cyan
+      '#FFBD33', // Gold
+      '#8833FF', // Indigo
+      '#FF3333', // Red
+      '#33FFBD'  // Teal
+    ];
+
+    // Add each route with a different color
+    Object.keys(calculatedRoutes).forEach((vehicleIndex, index) => {
+      const routePoints = calculatedRoutes[vehicleIndex];
+      const waypoints = routePoints.map(point => L.latLng(point[1], point[0]));
+      
+      const routingControl = L.Routing.control({
+        waypoints: waypoints,
+        lineOptions: {
+          styles: [{ color: colors[index % colors.length], weight: 4 }],
+          extendToWaypoints: true,
+          missingRouteTolerance: 100
+        },
+        routeWhileDragging: false,
+        addWaypoints: false,
+        draggableWaypoints: false,
+        showAlternatives: false,
+        createMarker: function() { return null; } // Don't create markers for waypoints
+      }).addTo(map);
+
+      // Hide the itinerary
+      if (routingControl && routingControl._container) {
+        routingControl._container.style.display = 'none';
+      }
+    });
+
+  }, [calculatedRoutes, map]);
+
   return null;
 };
 
-const Map: React.FC<MapProps> = ({ locations }) => {
+const Map: React.FC<MapProps> = ({ locations, calculatedRoutes }) => {
   // Precomputed center for better performance
   const defaultCenter: [number, number] = [12.921885, 80.084661];
-  
-  // Only show the fixed routing points, unless specific locations are important
-  const showOnlyRoutingPoints = locations.length === 0;
-  const displayLocations = showOnlyRoutingPoints ? 
-    [
-      { latitude: 12.925064, longitude: 80.116439, capacity: 0 },
-      { latitude: 12.918706, longitude: 80.052883, capacity: 0 }
-    ] : 
-    locations;
   
   return (
     <div className="h-full w-full">
@@ -90,7 +109,7 @@ const Map: React.FC<MapProps> = ({ locations }) => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {displayLocations.map((loc, index) => (
+        {locations.map((loc, index) => (
           <Marker key={index} position={[loc.latitude, loc.longitude]}>
             <Popup>
               <div>
@@ -101,7 +120,7 @@ const Map: React.FC<MapProps> = ({ locations }) => {
             </Popup>
           </Marker>
         ))}
-        <FastRouting />
+        <MapContent locations={locations} calculatedRoutes={calculatedRoutes} />
       </MapContainer>
     </div>
   );

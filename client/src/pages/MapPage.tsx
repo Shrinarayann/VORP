@@ -34,6 +34,9 @@ const MapPage: React.FC = () => {
   // For the collapsible saved routes sidebar on the left
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
+  // Add this state near your other state declarations
+  const [calculatedRoutes, setCalculatedRoutes] = useState<{[key: string]: [number, number][]} | null>(null);
+
   // When a saved route is selected, update the current map points.
   const handleSavedRouteSelect = (route: SavedRoute) => {
     setLocations(route.locations);
@@ -109,41 +112,36 @@ const MapPage: React.FC = () => {
     try {
       // Format the data according to the required structure
       const formattedData = {
-        // Format locations as [longitude, latitude] pairs
         locations: Locations.map(loc => [loc.longitude, loc.latitude]),
-        
-        // Number of vehicles
         num_vehicles: vehicles.length,
-        
-        // Depot index
         depot: depotIndex,
-        
-        // Vehicle capacities
         capacities: vehicles.map(v => v.capacity),
-        
-        // Demands (capacity required at each point)
         demands: Locations.map((point, index) => 
           index === depotIndex ? 0 : point.capacity
         )
       };
       
-      // Log the formatted data to console
       console.log("API Request Data:", formattedData);
 
-      // Continue with your existing API call if needed
-      // Note: Your existing code uses slightly different field names
-      // You may need to adjust the API call payload to match your backend expectations
-      
-      // For reference, here's your existing payload:
-      const payload = {
-        distance_matrix: [], // You compute this from OpenRouteService
-        demands: formattedData.demands,
-        vehicle_capacities: formattedData.capacities,
-        num_vehicles: formattedData.num_vehicles,
-        depot: formattedData.depot
+      // For now, simulate the API response
+      // In a real implementation, replace this with your actual API call
+      const mockResponse = {
+        calculated_routes: {
+          "0": [
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude],
+            ...formattedData.locations.slice(0, 2),
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude]
+          ],
+          "1": [
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude],
+            ...formattedData.locations.slice(2),
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude]
+          ]
+        }
       };
-      
-      // Your existing API calls would continue here...
+
+      // Set the calculated routes to state to trigger map update
+      setCalculatedRoutes(mockResponse.calculated_routes);
       
     } catch (error) {
       console.error("Error in calculating routes:", error);
@@ -175,7 +173,7 @@ const MapPage: React.FC = () => {
             {/* Map Section */}
             <div className="p-4 flex-grow">
               <h1 className="text-2xl font-semibold py-2">Route Optimizer</h1>
-              <Map locations={Locations} />
+              <Map locations={Locations} calculatedRoutes={calculatedRoutes} />
             </div>
 
             {/* Right Sidebar for Inputs (Points & Vehicles) */}
