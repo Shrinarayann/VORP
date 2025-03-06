@@ -11,7 +11,8 @@ CORS(app)  # Enable CORS for all routes
 # OSRM_URL=
 
 def solve_cvrp(data):
-    # ... (existing code unchanged)
+    print("Data received for solving CVRP:", data)
+    
     # Create the routing index manager
     manager = pywrapcp.RoutingIndexManager(
         len(data["distance_matrix"]), data["num_vehicles"], data["depot"]
@@ -101,7 +102,6 @@ def solve_cvrp(data):
     result["total_distance"] = total_distance
     result["total_load"] = total_load
 
-    
     return result
 
 @app.route('/api/solve', methods=['POST'])
@@ -166,55 +166,86 @@ def calculate_routes():
     
     try:
         locations = data["locations"]
-        num_vehicles = data["num_vehicles"]
-        depot = data["depot"]
-        vehicle_capacities = data["capacities"]
-        demands = data["demands"]
+        num_vehicles = int(data["num_vehicles"])
+        depot = int(data["depot"])
+        vehicle_capacities = [int(cap) for cap in data["capacities"]]
+        demands = [int(demand) for demand in data["demands"]]
 
-        # Convert locations to a list of lists
-        osrm_coords = [[lon, lat] for lon, lat in locations]
+        # Validate inputs
+        if len(locations) != len(demands):
+            return jsonify({"error": "Number of locations must match number of demands"}), 400
+        
+        if num_vehicles <= 0 or num_vehicles > len(vehicle_capacities):
+            return jsonify({"error": "Invalid number of vehicles"}), 400
+            
+        if depot < 0 or depot >= len(locations):
+            return jsonify({"error": "Invalid depot index"}), 400
 
-        print(type(osrm_coords))
+        # Print debugging information
+        print(f"Locations: {locations}")
+        print(f"Num vehicles: {num_vehicles}")
+        print(f"Vehicle capacities: {vehicle_capacities}")
+        print(f"Demands: {demands}")
+        print(f"Depot: {depot}")
 
-        dist_matrix=distance_matrix.distance_matrix_calc(osrm_coords)
-        print()
-        print(dist_matrix)
-        data = {
-        "distance_matrix": dist_matrix,
-        "demands": demands,
-        "vehicle_capacities": vehicle_capacities,
-        "num_vehicles": num_vehicles,
-        "depot": depot
-    }
-        res=solve_cvrp(data)
-        print(res)
-        # OR-Tools response
-    # response = {
-    #     'status': 'success',
-    #     'objective_value': 5,
-    #     'routes': [
-    #         {'vehicle_id': 0, 'route': [{'node': 0, 'load': 0}, {'node': 1, 'load': 50}, {'node': 0, 'load': 50}], 'distance': 2, 'load': 50},
-    #         {'vehicle_id': 1, 'route': [{'node': 0, 'load': 0}, {'node': 2, 'load': 75}, {'node': 3, 'load': 175}, {'node': 0, 'load': 175}], 'distance': 3, 'load': 175}
-    #     ],
-    #     'total_distance': 5,
-    #     'total_load': 225
-    # }
+        # Convert locations to format expected by distance_matrix_calc
+        osrm_coords = [[float(lon), float(lat)] for lon, lat in locations]
+        
+        # Calculate distance matrix
+        dist_matrix = distance_matrix.distance_matrix_calc(osrm_coords)
+        
+        # Ensure the distance matrix has correct dimensions
+        if len(dist_matrix) != len(locations):
+            return jsonify({"error": "Distance matrix calculation failed"}), 500
+            
+        # Convert distance matrix to integer values in meters (OR-Tools works better with integers)
+        # Multiply by 1000 to convert km to m, then round to nearest integer
+        int_dist_matrix = []
+        for row in dist_matrix:
+            int_row = [int(distance * 1000) for distance in row]
+            int_dist_matrix.append(int_row)
+            
+        # Check that demands don't exceed capacity (just for validation)
+        total_demand = sum(demands) - demands[depot]  # Exclude depot demand
+        total_capacity = sum(vehicle_capacities)
+        if total_demand > total_capacity:
+            return jsonify({"error": f"Total demand ({total_demand}) exceeds total capacity ({total_capacity})"}), 400
 
-    # Transform response into desired format
-        formatted_routes = {
-            int(route['vehicle_id']): [step['node'] for step in route['route']]
-            for route in res['routes']
+        # Prepare data for OR-Tools solver
+        solver_data = {
+            "distance_matrix": int_dist_matrix,  # Use integer distances in meters
+            "demands": demands,
+            "vehicle_capacities": vehicle_capacities,
+            "num_vehicles": num_vehicles,
+            "depot": depot,
+            "time_limit": 5  # Give it more time to solve
         }
-
-        for i in formatted_routes:
-            formatted_routes[i]=[locations[j] for j in formatted_routes[i]]
-        # Output the result
-        print(formatted_routes)
-
-            # Return a valid response
-        return jsonify({"message": "Success", "calculated_routes": formatted_routes}), 200
+        
+        print("Solver data:", solver_data)
+        res = solve_cvrp(solver_data)
+        
+        if res.get("status") == "No solution found":
+            return jsonify({"error": "No feasible solution found. Check demands and capacities."}), 400
+            
+        # Transform response into desired format
+        formatted_routes = {}
+        for route in res['routes']:
+            route_id = int(route['vehicle_id'])
+            node_indices = [step['node'] for step in route['route']]
+            formatted_routes[route_id] = [locations[idx] for idx in node_indices]
+        
+        return jsonify({
+            "message": "Success", 
+            "calculated_routes": formatted_routes,
+            "metrics": {
+                "total_distance": res['total_distance'],
+                "total_load": res['total_load']
+            }
+        }), 200
 
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
     
