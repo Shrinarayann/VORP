@@ -261,7 +261,7 @@ const MapPage: React.FC = () => {
               )}
 
               {activeTab === "vehicles" && (
-                <div className="vehicles-tab">
+                <div className="vehicles-tab mt-5">
                   <h2 className="text-2xl font-semibold">Vehicle Details</h2>
                   <div className="flex flex-col space-y-2 my-2">
                     <Input
@@ -283,7 +283,7 @@ const MapPage: React.FC = () => {
                       Add Single
                     </Button>
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-10">
                     <h2 className="text-2xl font-semibold">Added Vehicles</h2>
                     <div className="h-64 overflow-y-auto">
                       {vehicles.length === 0 ? (
