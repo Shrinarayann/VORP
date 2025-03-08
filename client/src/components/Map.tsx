@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 import 'leaflet-routing-machine';
+import './map.css';
 
 declare module "leaflet" {
   namespace Routing {
@@ -20,7 +21,21 @@ type Location = {
 interface MapProps {
   locations: Location[];
   calculatedRoutes?: {[key: string]: [number, number][]};
+  depotIndex: number | null;
+  onMapClick?: (lat: number, lng: number) => void;
 }
+
+// Handle map clicks and other events
+const MapEvents = ({ onMapClick }: { onMapClick?: (lat: number, lng: number) => void }) => {
+  useMapEvents({
+    click: (e) => {
+      if (onMapClick) {
+        onMapClick(e.latlng.lat, e.latlng.lng);
+      }
+    }
+  });
+  return null;
+};
 
 // Add markers and routing to the map
 const MapContent = ({ locations, calculatedRoutes }: MapProps) => {
@@ -92,7 +107,26 @@ const MapContent = ({ locations, calculatedRoutes }: MapProps) => {
   return null;
 };
 
-const Map: React.FC<MapProps> = ({ locations, calculatedRoutes }) => {
+const Map: React.FC<MapProps> = ({ locations, calculatedRoutes, depotIndex, onMapClick }) => {
+  // Create custom icons for regular points and depot
+  const regularIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+
+  const depotIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+  
   // Precomputed center for better performance
   const defaultCenter: [number, number] = [12.921885, 80.084661];
   
@@ -110,17 +144,22 @@ const Map: React.FC<MapProps> = ({ locations, calculatedRoutes }) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {locations.map((loc, index) => (
-          <Marker key={index} position={[loc.latitude, loc.longitude]}>
+          <Marker 
+            key={index} 
+            position={[loc.latitude, loc.longitude]} 
+            icon={index === depotIndex ? depotIcon : regularIcon}
+          >
             <Popup>
               <div>
-                <strong>Point {index + 1}</strong>
+                <strong>{index === depotIndex ? "Depot" : `Point ${index + 1}`}</strong>
                 <br />
                 Capacity: {loc.capacity}
               </div>
             </Popup>
           </Marker>
         ))}
-        <MapContent locations={locations} calculatedRoutes={calculatedRoutes} />
+        <MapContent locations={locations} calculatedRoutes={calculatedRoutes} depotIndex={depotIndex} />
+        <MapEvents onMapClick={onMapClick} />
       </MapContainer>
     </div>
   );
