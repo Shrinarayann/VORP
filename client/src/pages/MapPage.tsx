@@ -119,14 +119,14 @@ const MapPage: React.FC = () => {
       const mockResponse = {
         calculated_routes: {
           "0": [
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude],
-            ...formattedData.locations.slice(0, 2),
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude]
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude] as [number, number],
+            ...formattedData.locations.slice(0, 2).map(loc => loc as [number, number]),
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude] as [number, number]
           ],
           "1": [
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude],
-            ...formattedData.locations.slice(2),
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude]
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude] as [number, number],
+            ...formattedData.locations.slice(2).map(loc => loc as [number, number]),
+            [Locations[depotIndex].longitude, Locations[depotIndex].latitude] as [number, number]
           ]
         }
       };
@@ -172,7 +172,7 @@ const MapPage: React.FC = () => {
             <div className="p-4 flex-grow">
               <h1 className="text-2xl font-bold py-2 text-secBlue">Route Optimizer</h1>
               <div className="bg-white rounded-lg shadow-md overflow-hidden h-[calc(100vh-120px)]">
-                <Map locations={Locations} calculatedRoutes={calculatedRoutes} />
+                <Map locations={Locations} calculatedRoutes={calculatedRoutes || {}} />
               </div>
             </div>
 

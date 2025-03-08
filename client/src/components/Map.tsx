@@ -41,7 +41,7 @@ const MapContent = ({ locations, calculatedRoutes }: MapProps) => {
   useEffect(() => {
     // Clear previous routing controls
     map.eachLayer((layer) => {
-      if (layer instanceof L.Routing.Control) {
+      if (layer instanceof L.Routing.control) {
         map.removeLayer(layer);
       }
     });
