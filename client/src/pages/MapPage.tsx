@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useLocation } from '@/context/LocationContext';
 import { Slider } from '@/components/ui/slider';
 import { ChevronLeft, ChevronRight, Plus, MapPin, Truck } from 'lucide-react';
+import axios from 'axios';
 
 type Vehicle = {
   id: number;
@@ -115,26 +116,25 @@ const MapPage: React.FC = () => {
       
       console.log("API Request Data:", formattedData);
 
-      // Mock response - replace with actual API call
-      const mockResponse = {
-        calculated_routes: {
-          "0": [
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude] as [number, number],
-            ...formattedData.locations.slice(0, 2).map(loc => loc as [number, number]),
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude] as [number, number]
-          ],
-          "1": [
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude] as [number, number],
-            ...formattedData.locations.slice(2).map(loc => loc as [number, number]),
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude] as [number, number]
-          ]
-        }
-      };
-
-      setCalculatedRoutes(mockResponse.calculated_routes);
+      // Make the actual API call
+      const response = await axios.post(
+        'http://localhost:8080/api/v1/calculate_routes', 
+        formattedData
+      );
+      
+      console.log("API Response:", response.data);
+      
+      // Set the calculated routes from the response
+      if (response.data && response.data.calculated_routes) {
+        setCalculatedRoutes(response.data.calculated_routes);
+      } else {
+        console.error("Invalid response format:", response.data);
+        alert("Failed to calculate routes: Invalid response format");
+      }
       
     } catch (error) {
       console.error("Error in calculating routes:", error);
+      alert("Failed to calculate routes. Please check the console for details.");
     }
   };
 
@@ -173,7 +173,7 @@ const MapPage: React.FC = () => {
               <h1 className="text-2xl font-bold py-2 text-secBlue">Route Optimizer</h1>
               <div className="bg-white rounded-lg shadow-md overflow-hidden h-[calc(100vh-120px)]">
                 <Map locations={Locations} calculatedRoutes={calculatedRoutes || {}} />
-              </div>
+                </div>
             </div>
 
             {/* Right Sidebar for Inputs */}
