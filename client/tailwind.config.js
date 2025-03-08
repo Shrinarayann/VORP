@@ -50,12 +50,13 @@ module.exports = {
     				'4': 'hsl(var(--chart-4))',
     				'5': 'hsl(var(--chart-5))'
     			},
-				priWhite: "#FFFFFF",
-				secBlue: "#003049",
-				AccYellow: '#D6AE00',
-				BlackText: '#000000',
-				WhiteText: '#FFFFFF',
-				LightBlue: "#ADD8E6"
+                priWhite: "#FFFFFF",
+                secBlue: "#2E4057", // Changed from #0a6ba0 to a darker blue
+                AccYellow: '#FFB400', // Changed from #D6AE00 to a brighter yellow
+                BlackText: '#333333', // Slightly softer black
+                WhiteText: '#FFFFFF',
+                LightBlue: "#4D7EA8", // Changed from #ADD8E6 to a more saturated blue
+                tertiary: "#829CBC",
     		}
     	}
     },
