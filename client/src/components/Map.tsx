@@ -20,10 +20,11 @@ type Location = {
 interface MapProps {
   locations: Location[];
   calculatedRoutes?: {[key: string]: [number, number][]};
+  selectedRouteId?: string | null;
 }
 
 // Add markers and routing to the map
-const MapContent = ({ locations, calculatedRoutes }: MapProps) => {
+const MapContent = ({ locations, calculatedRoutes, selectedRouteId }: MapProps) => {
   const map = useMap();
 
   // Create markers for each location
@@ -67,10 +68,22 @@ const MapContent = ({ locations, calculatedRoutes }: MapProps) => {
       const routePoints = calculatedRoutes[vehicleIndex];
       const waypoints = routePoints.map(point => L.latLng(point[1], point[0]));
       
+      // Check if this route is selected
+      const isSelected = selectedRouteId === vehicleIndex;
+      
+      // Determine route styling
+      const routeColor = colors[index % colors.length];
+      const weight = isSelected ? 6 : 4; // Make selected route thicker
+      const opacity = isSelected ? 1.0 : (selectedRouteId ? 0.4 : 0.8); // Fade non-selected routes
+      
       const routingControl = L.Routing.control({
         waypoints: waypoints,
         lineOptions: {
-          styles: [{ color: colors[index % colors.length], weight: 4 }],
+          styles: [{ 
+            color: routeColor, 
+            weight: weight, 
+            opacity: opacity 
+          }],
           extendToWaypoints: true,
           missingRouteTolerance: 100
         },
@@ -87,12 +100,12 @@ const MapContent = ({ locations, calculatedRoutes }: MapProps) => {
       }
     });
 
-  }, [calculatedRoutes, map]);
+  }, [calculatedRoutes, selectedRouteId, map]);
 
   return null;
 };
 
-const Map: React.FC<MapProps> = ({ locations, calculatedRoutes }) => {
+const Map: React.FC<MapProps> = ({ locations, calculatedRoutes, selectedRouteId }) => {
   // Precomputed center for better performance
   const defaultCenter: [number, number] = [12.921885, 80.084661];
   
@@ -120,7 +133,11 @@ const Map: React.FC<MapProps> = ({ locations, calculatedRoutes }) => {
             </Popup>
           </Marker>
         ))}
-        <MapContent locations={locations} calculatedRoutes={calculatedRoutes} />
+        <MapContent 
+          locations={locations} 
+          calculatedRoutes={calculatedRoutes} 
+          selectedRouteId={selectedRouteId} 
+        />
       </MapContainer>
     </div>
   );
