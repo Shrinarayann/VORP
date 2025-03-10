@@ -1,51 +1,73 @@
-
 import requests
+import time
+
 API_KEY = "483abfe40c7c4393b51a7117d14f1235"
+BASE_URL = "https://api.geoapify.com/v1/batch/geocode/search"
 
+def geoapifyCoding(data):
 
-url = f"https://api.geoapify.com/v1/batch/geocode/search?apiKey={API_KEY}"
+    data =  [
+        "Chromepet, Chennai, 600044, India",
+        "Marina Beach, Chennai, 600001, India",
+        "MG Road, Bengaluru, 560001, India",
+        "Connaught Place, New Delhi, 110001, India",
+        "Marine Drive, Mumbai, 400020, India",
+        "Juhu Beach, Mumbai, 400049, India",
+        "Hawa Mahal, Jaipur, 302002, India",
+        "Victoria Memorial, Kolkata, 700071, India",
+        "Gateway of India, Mumbai, 400001, India",
+        "Taj Mahal, Agra, 282001, India",
+    ]
 
-data = [
-    "Chromepet, Chennai, 600044, India",
-    "Marina Beach, Chennai, 600001, India",
-    "MG Road, Bengaluru, 560001, India",
-    "Connaught Place, New Delhi, 110001, India",
-    "Marine Drive, Mumbai, 400020, India",
-    "Juhu Beach, Mumbai, 400049, India",
-    "Hawa Mahal, Jaipur, 302002, India",
-    "Victoria Memorial, Kolkata, 700071, India",
-    "Gateway of India, Mumbai, 400001, India",
-    "Taj Mahal, Agra, 282001, India",
-    "Red Fort, New Delhi, 110006, India",
-    "Qutub Minar, New Delhi, 110030, India",
-    "Lotus Temple, New Delhi, 110019, India",
-    "India Gate, New Delhi, 110001, India",
-    "Charminar, Hyderabad, 500002, India",
-    "Golconda Fort, Hyderabad, 500008, India",
-    "Meenakshi Temple, Madurai, 625001, India",
-    "Golden Temple, Amritsar, 143006, India",
-    "Ajanta Caves, Aurangabad, 431001, India",
-    "Ellora Caves, Aurangabad, 431005, India"
-]
+    #SLEEP_TIME=len(data)//2
 
+    try:
+        response = requests.post(f"{BASE_URL}?apiKey={API_KEY}", json=data)
+        response.raise_for_status()  # Raise an error if the request failed
+        batch_id = response.json().get("id")
+        
+        if not batch_id:
+            raise ValueError("Batch ID not received. API response:", response.json())
 
+        print(f"Batch ID: {batch_id}")
 
-response = requests.post(url, json=data)
-print(response)
-print(response.json())
+    except requests.RequestException as e:
+        print(f"Error sending batch request: {e}")
+        exit()
 
-ID=response.json()['id']
+    # Polling for results with a delay
+    poll_url = f"{BASE_URL}?id={batch_id}&apiKey={API_KEY}"
 
-while True: 
-    res=requests.get(f'https://api.geoapify.com/v1/batch/geocode/search?id={ID}&apiKey={API_KEY}')
-    if res.status_code==200:
-        break
+    while True:
+        try:
+            res = requests.get(poll_url)
+            statusCode=res.status_code
+            #res.raise_for_status()
+            result_data = res.json()
 
+            if statusCode== 200:
+                result_data=res.json()
+                break  
 
+            print("Waiting for results...")
+            time.sleep(2)  
 
-for item in res.json():
-    lon = item['lon']
-    lat = item['lat']
-    print(f"Longitude: {lon}, Latitude: {lat}")
+        except requests.RequestException as e:
+            print(f"Error fetching results: {e}")
+            time.sleep(2)
 
+    #print(result_data)
 
+    if not result_data:
+        print("No results found.")
+        exit()
+
+    lonLatArr=[]
+    for item in result_data:
+        lon = item['lon']
+        lat = item['lat']
+        lonLatArr.append([lon,lat])
+        #print(f"Longitude: {lon}, Latitude: {lat}")
+
+    print(lonLatArr)
+    return lonLatArr
