@@ -1,74 +1,26 @@
-import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import Logo from '@/assets/LogoYellow.png'
-import { supabase } from '@/auth/supabase' // We'll need to create this
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import Logo from '@/assets/LogoYellow.png';
+import { useUser } from '@/context/UserContext';
 
 const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [user, setUser] = useState<null | { [key: string]: any }>(null);
+  const { user, login, logout } = useUser();
 
   useEffect(() => {
-    // Check for existing session
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-    };
-    
-    getUser();
-    
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user || null);
-      }
-    );
-    
     const handleScroll = () => {
       if (window.scrollY > 50) {
-        setIsScrolled(true)
+        setIsScrolled(true);
       } else {
         setIsScrolled(false);
       }
-    }
+    };
 
     window.addEventListener('scroll', handleScroll);
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      subscription?.unsubscribe();
     };
   }, []);
-
-  const handleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
-      
-      if (error) throw error;
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('Error logging in:', error.message);
-      } else {
-        console.error('Error logging in:', error);
-      }
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('Error logging out:', error.message);
-      } else {
-        console.error('Error logging out:', error);
-      }
-    }
-  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50">
@@ -79,53 +31,57 @@ const Navbar: React.FC = () => {
           : 'bg-white py-3'}
       `}>
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
+          <div className="grid grid-cols-12 items-center">
             {/* Logo */}
-            <Link to="/" className="flex items-center">
-              <img src={Logo} className="h-10" alt="VORP Logo" />
-              <span className={`ml-2 font-bold text-xl ${isScrolled ? 'text-white' : 'text-secBlue'}`}>
-                VORP
-              </span>
-            </Link>
-
-            {/* Navigation Links */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Link 
-                to="/" 
-                className={`font-medium text-base hover:opacity-80 transition-opacity ${
-                  isScrolled ? 'text-white' : 'text-secBlue'
-                }`}
-              >
-                Home
-              </Link>
-              <Link 
-                to="/route" 
-                className={`font-medium text-base hover:opacity-80 transition-opacity ${
-                  isScrolled ? 'text-white' : 'text-secBlue'
-                }`}
-              >
-                Route Planner
-              </Link>
-              <Link 
-                to="/about" 
-                className={`font-medium text-base hover:opacity-80 transition-opacity ${
-                  isScrolled ? 'text-white' : 'text-secBlue'
-                }`}
-              >
-                About
-              </Link>
-              <Link 
-                to="/contact" 
-                className={`font-medium text-base hover:opacity-80 transition-opacity ${
-                  isScrolled ? 'text-white' : 'text-secBlue'
-                }`}
-              >
-                Contact
+            <div className="col-span-3">
+              <Link to="/" className="flex items-center">
+                <img src={Logo} className="h-10" alt="VORP Logo" />
+                <span className={`ml-2 font-bold text-xl ${isScrolled ? 'text-white' : 'text-secBlue'}`}>
+                  VORP
+                </span>
               </Link>
             </div>
 
+            {/* Navigation Links - Center aligned */}
+            <div className="hidden md:flex col-span-6 justify-center">
+              <div className="flex items-center space-x-8">
+                <Link 
+                  to="/" 
+                  className={`font-medium text-base hover:opacity-80 transition-opacity ${
+                    isScrolled ? 'text-white' : 'text-secBlue'
+                  }`}
+                >
+                  Home
+                </Link>
+                <Link 
+                  to="/route" 
+                  className={`font-medium text-base hover:opacity-80 transition-opacity ${
+                    isScrolled ? 'text-white' : 'text-secBlue'
+                  }`}
+                >
+                  Route Planner
+                </Link>
+                <Link 
+                  to="/about" 
+                  className={`font-medium text-base hover:opacity-80 transition-opacity ${
+                    isScrolled ? 'text-white' : 'text-secBlue'
+                  }`}
+                >
+                  About
+                </Link>
+                <Link 
+                  to="/contact" 
+                  className={`font-medium text-base hover:opacity-80 transition-opacity ${
+                    isScrolled ? 'text-white' : 'text-secBlue'
+                  }`}
+                >
+                  Contact
+                </Link>
+              </div>
+            </div>
+
             {/* CTA Buttons */}
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="hidden md:flex col-span-3 justify-end items-center space-x-4">
               <Link 
                 to="/route" 
                 className={`px-5 py-2 rounded-md text-sm font-medium transition-all
@@ -138,7 +94,7 @@ const Navbar: React.FC = () => {
               
               {user ? (
                 <button
-                  onClick={handleLogout}
+                  onClick={logout}
                   className={`px-5 py-2 rounded-md text-sm font-medium transition-all
                   ${isScrolled 
                     ? 'bg-transparent text-white border border-white hover:bg-white hover:text-secBlue' 
@@ -148,7 +104,7 @@ const Navbar: React.FC = () => {
                 </button>
               ) : (
                 <button
-                  onClick={handleLogin}
+                  onClick={login}
                   className={`px-5 py-2 rounded-md text-sm font-medium transition-all flex items-center
                   ${isScrolled 
                     ? 'bg-transparent text-white border border-white hover:bg-white hover:text-secBlue' 
@@ -163,8 +119,8 @@ const Navbar: React.FC = () => {
               )}
             </div>
 
-            {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center">
+            {/* Mobile Menu Button - Only visible on mobile */}
+            <div className="md:hidden col-span-9 flex justify-end">
               <button 
                 className={`p-2 rounded-md ${isScrolled ? 'text-white' : 'text-secBlue'}`}
               >
@@ -177,7 +133,7 @@ const Navbar: React.FC = () => {
         </div>
       </div>
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;
