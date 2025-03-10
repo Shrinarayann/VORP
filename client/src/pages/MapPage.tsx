@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useLocation } from '@/context/LocationContext';
 import { Slider } from '@/components/ui/slider';
 import { ChevronLeft, ChevronRight, Plus, MapPin, Truck, Route } from 'lucide-react';
+import axios from 'axios';
 
 type Vehicle = {
   id: number;
@@ -37,6 +38,21 @@ const MapPage: React.FC = () => {
   
   // State for calculated routes
   const [calculatedRoutes, setCalculatedRoutes] = useState<{[key: string]: [number, number][]} | null>(null);
+
+  // Add a new handleMapClick function
+  const handleMapClick = (lat: number, lng: number) => {
+    // Update latitude and longitude state
+    setLatitude(lat);
+    setLongitude(lng);
+    
+    // If we're in the points tab, automatically scroll to the inputs
+    if (activeTab === "points") {
+      const pointsSection = document.getElementById("add-points-section");
+      if (pointsSection) {
+        pointsSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
   
   // State to track the selected route
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
@@ -111,6 +127,7 @@ const MapPage: React.FC = () => {
     }
 
     try {
+      // Format data according to what the backend expects
       const formattedData = {
         locations: Locations.map(loc => [loc.longitude, loc.latitude]),
         num_vehicles: vehicles.length,
@@ -123,32 +140,96 @@ const MapPage: React.FC = () => {
       
       console.log("API Request Data:", formattedData);
 
-      // Mock response - replace with actual API call
-      const mockResponse = {
-        calculated_routes: {
-          "0": [
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude],
-            ...formattedData.locations.slice(0, 2),
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude]
-          ],
-          "1": [
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude],
-            ...formattedData.locations.slice(2),
-            [Locations[depotIndex].longitude, Locations[depotIndex].latitude]
-          ]
+      // Make the API call
+      const response = await axios.post(
+        'http://localhost:8080/api/v1/calculate_routes', 
+        formattedData
+      );
+      
+      console.log("API Response Structure:", JSON.stringify(response.data, null, 2));
+      
+      // Check for both possible response formats
+      if (response.data && response.data.routes) {
+        // Original format with "routes" property
+        const formattedRoutes: {[key: string]: [number, number][]} = {};
+        
+        response.data.routes.forEach((route: any, index: number) => {
+          if (route && route.route && Array.isArray(route.route)) {
+            const routeCoordinates: [number, number][] = route.route.map((point: any) => {
+              const nodeIndex = point.node;
+              if (Locations[nodeIndex]) {
+                return [Locations[nodeIndex].longitude, Locations[nodeIndex].latitude];
+              }
+              return [0, 0]; 
+            }).filter((coord: [number, number]) => coord[0] !== 0 || coord[1] !== 0);
+            
+            formattedRoutes[index.toString()] = routeCoordinates;
+          }
+        });
+        
+        setCalculatedRoutes(formattedRoutes);
+      } 
+      else if (response.data && response.data.calculated_routes) {
+        // Alternative format with "calculated_routes" property
+        console.log("Found calculated_routes in response:", response.data.calculated_routes);
+        
+        try {
+          // Try to parse the calculated_routes directly
+          if (typeof response.data.calculated_routes === 'object') {
+            setCalculatedRoutes(response.data.calculated_routes);
+          } 
+          // Or format it if it's an array
+          else if (Array.isArray(response.data.calculated_routes)) {
+            const formattedRoutes: {[key: string]: [number, number][]} = {};
+            
+            response.data.calculated_routes.forEach((route: any, index: number) => {
+              if (Array.isArray(route)) {
+                formattedRoutes[index.toString()] = route;
+              }
+            });
+            
+            setCalculatedRoutes(formattedRoutes);
+          }
+          else {
+            throw new Error("calculated_routes is not in expected format");
+          }
+        } catch (parseError) {
+          console.error("Error parsing calculated_routes:", parseError);
+          alert(`Routes calculated but format couldn't be processed. Check console for details.`);
         }
-      };
-
-      setCalculatedRoutes(mockResponse.calculated_routes);
+      } 
+      else if (response.data && response.data.status === "success") {
+        alert("Routes calculated successfully, but no route data was returned. Check console for details.");
+        console.log("Success response but missing route data:", response.data);
+      } 
+      else {
+        // Detailed error for debugging
+        console.error("Invalid response format:", response.data);
+        let errorMessage = "Unknown response format";
+        
+        if (response.data) {
+          if (typeof response.data === 'object') {
+            const keys = Object.keys(response.data).join(", ");
+            errorMessage = `Expected 'routes' or 'calculated_routes', got: ${keys}`;
+            
+            // If there's a message in the response, include it
+            if (response.data.message) {
+              errorMessage += ` (Message: ${response.data.message})`;
+            }
+          } else {
+            errorMessage = String(response.data);
+          }
+        }
+        
+        alert(`Failed to calculate routes: ${errorMessage}`);
+      }
       
-      // Auto switch to routes tab after calculation
-      setActiveTab("routes");
-      
-      // Reset selected route
-      setSelectedRouteId(null);
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in calculating routes:", error);
+      const errorMessage = error.response ? 
+        `Server error: ${error.response.status} ${error.response.statusText}` : 
+        "Network error or server unavailable";
+      alert(`Failed to calculate routes: ${errorMessage}. Check console for details.`);
     }
   };
 
@@ -188,7 +269,9 @@ const MapPage: React.FC = () => {
               <div className="bg-white rounded-lg shadow-md overflow-hidden h-[calc(100vh-120px)]">
                 <Map 
                   locations={Locations} 
-                  calculatedRoutes={calculatedRoutes} 
+                  calculatedRoutes={calculatedRoutes || {}} 
+                  depotIndex={depotIndex} 
+                  onMapClick={handleMapClick} 
                   selectedRouteId={selectedRouteId}
                 />
               </div>
@@ -237,16 +320,18 @@ const MapPage: React.FC = () => {
               {/* Tab Content */}
               {activeTab === "points" && (
                 <div className="points-tab">
-                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                  <div id="add-points-section" className="bg-gray-50 p-4 rounded-lg mb-6">
                     <h2 className="text-xl font-semibold mb-3 text-gray-800">Add Points</h2>
                     <div className="flex space-x-2 mb-3">
                       <Input
                         placeholder="Latitude"
+                        value={latitude || ""} // Add value prop
                         className="w-1/2 border-gray-300 focus:ring-LightBlue focus:border-LightBlue"
                         onChange={(e) => setLatitude(Number(e.target.value))}
                       />
                       <Input
                         placeholder="Longitude"
+                        value={longitude || ""} // Add value prop
                         className="w-1/2 border-gray-300 focus:ring-LightBlue focus:border-LightBlue"
                         onChange={(e) => setLongitude(Number(e.target.value))}
                       />
