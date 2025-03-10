@@ -131,7 +131,7 @@ const Map: React.FC<MapProps> = ({ locations, calculatedRoutes, depotIndex, onMa
   const defaultCenter: [number, number] = [12.921885, 80.084661];
   
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full z-1">
       <MapContainer 
         center={defaultCenter} 
         zoom={12} 

@@ -23,7 +23,7 @@ const Navbar: React.FC = () => {
   }, []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50">
+    <nav className="fixed top-0 left-0 right-0 z-[10000]">
       <div className={`
         w-full transition-all duration-300 shadow-sm
         ${isScrolled 

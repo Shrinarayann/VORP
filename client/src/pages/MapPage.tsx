@@ -9,6 +9,9 @@ import { useLocation } from '@/context/LocationContext';
 import { Slider } from '@/components/ui/slider';
 import { ChevronLeft, ChevronRight, Plus, MapPin, Truck } from 'lucide-react';
 import axios from 'axios';
+import { useUser } from '@/context/UserContext';
+import { supabase } from '@/auth/supabase';
+import { Loader2, Save } from 'lucide-react';
 
 type Vehicle = {
   id: number;
@@ -39,6 +42,11 @@ const MapPage: React.FC = () => {
   // Add this state near your other state declarations
   const [calculatedRoutes, setCalculatedRoutes] = useState<{[key: string]: [number, number][]} | null>(null);
 
+  // Add these state variables
+  const [locationName, setLocationName] = useState<string>('');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const { user } = useUser();
+
   // Add a new handleMapClick function
   const handleMapClick = (lat: number, lng: number) => {
     // Update latitude and longitude state
@@ -58,6 +66,8 @@ const MapPage: React.FC = () => {
   const handleSavedRouteSelect = (route: SavedRoute) => {
     setLocations(route.locations);
     setDepotIndex(null);
+    // Close the sidebar after selecting a route
+    setSidebarOpen(false);
   };
 
   const handleAddPoint = (lat: number, lng: number, demand: number) => {
@@ -225,11 +235,70 @@ const MapPage: React.FC = () => {
     }
   };
 
+  // Add this function to handle saving locations
+  const handleSaveLocations = async () => {
+    console.log("[DEBUG SaveLocation] Starting save operation");
+    
+    if (!user) {
+      console.log("[DEBUG SaveLocation] No user found, showing alert");
+      alert("Please log in to save locations");
+      return;
+    }
+    
+    if (Locations.length === 0) {
+      console.log("[DEBUG SaveLocation] No locations to save");
+      alert("Add points to save");
+      return;
+    }
+    
+    if (!locationName.trim()) {
+      console.log("[DEBUG SaveLocation] No name provided");
+      alert("Please enter a name for this location set");
+      return;
+    }
+    
+    try {
+      console.log("[DEBUG SaveLocation] Setting isSaving to true");
+      setIsSaving(true);
+      
+      const locationData = {
+        user_id: user.id,
+        name: locationName,
+        data: { locations: Locations }
+      };
+      
+      console.log("[DEBUG SaveLocation] Sending data to Supabase:", JSON.stringify(locationData, null, 2));
+      
+      const { data, error } = await supabase
+        .from('locations')
+        .insert([locationData])
+        .select();
+      
+      console.log("[DEBUG SaveLocation] Supabase response received");
+      
+      if (error) {
+        console.error("[DEBUG SaveLocation] Supabase error:", error);
+        throw error;
+      }
+      
+      console.log("[DEBUG SaveLocation] Success! Data:", JSON.stringify(data, null, 2));
+      alert("Locations saved successfully!");
+      setLocationName('');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("[DEBUG SaveLocation] Exception:", errorMessage);
+      alert(`Failed to save locations: ${errorMessage}`);
+    } finally {
+      console.log("[DEBUG SaveLocation] Setting isSaving to false");
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50 pt-16"> {/* Add pt-16 here to create space at the top */}
       <Navbar />
-      {/* Main content container */}
-      <div className="flex flex-grow pt-14">
+      {/* Main content container without margin/padding, since parent has pt-16 */}
+      <div className="flex flex-grow"> 
         {/* Collapsible Saved Routes Sidebar (left) */}
         <div
           className={`transition-all duration-300 border-r border-gray-200 bg-white shadow-sm flex flex-col ${
@@ -258,7 +327,8 @@ const MapPage: React.FC = () => {
             {/* Map Section */}
             <div className="p-4 flex-grow">
               <h1 className="text-2xl font-bold py-2 text-secBlue">Route Optimizer</h1>
-              <div className="bg-white rounded-lg shadow-md overflow-hidden h-[calc(100vh-120px)]">
+              {/* Add position: relative and adjust the height calculation */}
+              <div className="bg-white rounded-lg shadow-md overflow-hidden h-[calc(100vh-160px)] relative">
                 <Map 
                   locations={Locations} 
                   calculatedRoutes={calculatedRoutes || {}} 
@@ -377,6 +447,32 @@ const MapPage: React.FC = () => {
                       )}
                     </div>
                   </div>
+                  {/* Save Locations Section */}
+                  {Locations.length > 0 && (
+                    <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+                      <h2 className="text-xl font-semibold mb-3 text-gray-800">Save Location Set</h2>
+                      <div className="flex space-x-2">
+                        <Input
+                          placeholder="Enter a name"
+                          value={locationName}
+                          onChange={(e) => setLocationName(e.target.value)}
+                          className="flex-1 border-gray-300 focus:ring-LightBlue focus:border-LightBlue"
+                          disabled={isSaving || !user}
+                        />
+                        <Button 
+                          className="bg-LightBlue hover:bg-blue-700 text-white"
+                          onClick={handleSaveLocations}
+                          disabled={isSaving || !user || !locationName.trim() || Locations.length === 0}
+                        >
+                          {isSaving ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                          Save
+                        </Button>
+                      </div>
+                      {!user && (
+                        <p className="text-xs text-gray-500 mt-2">Log in to save locations</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
