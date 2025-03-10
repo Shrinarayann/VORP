@@ -139,8 +139,6 @@ const MapPage: React.FC = () => {
           index === depotIndex ? 0 : point.capacity
         )
       };
-      
-      console.log("API Request Data:", formattedData);
 
       // Make the API call
       const response = await axios.post(
@@ -148,9 +146,7 @@ const MapPage: React.FC = () => {
         formattedData
       );
       
-      console.log("API Response Structure:", JSON.stringify(response.data, null, 2));
-      
-      // Check for both possible response formats
+      // Process response
       if (response.data && response.data.routes) {
         // Original format with "routes" property
         const formattedRoutes: {[key: string]: [number, number][]} = {};
@@ -173,8 +169,6 @@ const MapPage: React.FC = () => {
       } 
       else if (response.data && response.data.calculated_routes) {
         // Alternative format with "calculated_routes" property
-        console.log("Found calculated_routes in response:", response.data.calculated_routes);
-        
         try {
           // Try to parse the calculated_routes directly
           if (typeof response.data.calculated_routes === 'object') {
@@ -196,69 +190,41 @@ const MapPage: React.FC = () => {
             throw new Error("calculated_routes is not in expected format");
           }
         } catch (parseError) {
-          console.error("Error parsing calculated_routes:", parseError);
-          alert(`Routes calculated but format couldn't be processed. Check console for details.`);
+          alert(`Routes calculated but format couldn't be processed.`);
         }
       } 
       else if (response.data && response.data.status === "success") {
-        alert("Routes calculated successfully, but no route data was returned. Check console for details.");
-        console.log("Success response but missing route data:", response.data);
+        alert("Routes calculated successfully, but no route data was returned.");
       } 
       else {
-        // Detailed error for debugging
-        console.error("Invalid response format:", response.data);
-        let errorMessage = "Unknown response format";
-        
-        if (response.data) {
-          if (typeof response.data === 'object') {
-            const keys = Object.keys(response.data).join(", ");
-            errorMessage = `Expected 'routes' or 'calculated_routes', got: ${keys}`;
-            
-            // If there's a message in the response, include it
-            if (response.data.message) {
-              errorMessage += ` (Message: ${response.data.message})`;
-            }
-          } else {
-            errorMessage = String(response.data);
-          }
-        }
-        
-        alert(`Failed to calculate routes: ${errorMessage}`);
+        alert("Failed to calculate routes: Invalid response format.");
       }
-      
     } catch (error: any) {
-      console.error("Error in calculating routes:", error);
       const errorMessage = error.response ? 
         `Server error: ${error.response.status} ${error.response.statusText}` : 
         "Network error or server unavailable";
-      alert(`Failed to calculate routes: ${errorMessage}. Check console for details.`);
+      alert(`Failed to calculate routes: ${errorMessage}.`);
     }
   };
 
-  // Add this function to handle saving locations
+  // Function to handle saving locations
   const handleSaveLocations = async () => {
-    console.log("[DEBUG SaveLocation] Starting save operation");
-    
     if (!user) {
-      console.log("[DEBUG SaveLocation] No user found, showing alert");
       alert("Please log in to save locations");
       return;
     }
     
     if (Locations.length === 0) {
-      console.log("[DEBUG SaveLocation] No locations to save");
       alert("Add points to save");
       return;
     }
     
     if (!locationName.trim()) {
-      console.log("[DEBUG SaveLocation] No name provided");
       alert("Please enter a name for this location set");
       return;
     }
     
     try {
-      console.log("[DEBUG SaveLocation] Setting isSaving to true");
       setIsSaving(true);
       
       const locationData = {
@@ -267,29 +233,21 @@ const MapPage: React.FC = () => {
         data: { locations: Locations }
       };
       
-      console.log("[DEBUG SaveLocation] Sending data to Supabase:", JSON.stringify(locationData, null, 2));
-      
       const { data, error } = await supabase
         .from('locations')
         .insert([locationData])
         .select();
       
-      console.log("[DEBUG SaveLocation] Supabase response received");
-      
       if (error) {
-        console.error("[DEBUG SaveLocation] Supabase error:", error);
         throw error;
       }
       
-      console.log("[DEBUG SaveLocation] Success! Data:", JSON.stringify(data, null, 2));
       alert("Locations saved successfully!");
       setLocationName('');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error("[DEBUG SaveLocation] Exception:", errorMessage);
       alert(`Failed to save locations: ${errorMessage}`);
     } finally {
-      console.log("[DEBUG SaveLocation] Setting isSaving to false");
       setIsSaving(false);
     }
   };

@@ -23,36 +23,38 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onSelectRoute }) => {
   useEffect(() => {
     // Fetch saved routes from Supabase when user is available
     const fetchSavedRoutes = async () => {
-      console.log("[DEBUG SavedRoutes] Starting fetchSavedRoutes...");
-      console.log("[DEBUG SavedRoutes] User state:", user ? `Logged in as ${user.id}` : "Not logged in");
-      
+      // If no user, clear routes and return early
       if (!user) {
-        console.log("[DEBUG SavedRoutes] No user found, clearing routes");
         setSavedRoutes([]);
         setLoading(false);
         return;
       }
 
       try {
-        console.log("[DEBUG SavedRoutes] Setting loading to true");
         setLoading(true);
         setError(null);
         
-        console.log("[DEBUG SavedRoutes] Making Supabase request for user:", user.id);
+        // Add timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          if (loading) {
+            setError('Request timed out. Please try again.');
+            setLoading(false);
+          }
+        }, 10000);
+        
         const { data, error } = await supabase
           .from('locations')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
+        clearTimeout(timeoutId);
+        
         if (error) {
-          console.error('[DEBUG SavedRoutes] Error fetching locations:', error);
+          console.error('Error fetching locations:', error);
           setError(`Failed to fetch locations: ${error.message}`);
           return;
         }
-
-        console.log(`[DEBUG SavedRoutes] Received ${data?.length || 0} locations from Supabase`);
-        console.log("[DEBUG SavedRoutes] Raw data:", JSON.stringify(data, null, 2));
 
         // Transform the data from Supabase format to our SavedRoute format
         const transformedData: SavedRoute[] = data?.map(item => ({
@@ -61,19 +63,16 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onSelectRoute }) => {
           locations: item.data?.locations || []
         })) || [];
 
-        console.log("[DEBUG SavedRoutes] Transformed data:", JSON.stringify(transformedData, null, 2));
         setSavedRoutes(transformedData);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('[DEBUG SavedRoutes] Exception in fetchSavedRoutes:', errorMessage);
+        console.error('Exception in fetchSavedRoutes:', errorMessage);
         setError(`Error: ${errorMessage}`);
       } finally {
-        console.log("[DEBUG SavedRoutes] Setting loading to false");
         setLoading(false);
       }
     };
 
-    console.log("[DEBUG SavedRoutes] Setting up fetch effect");
     fetchSavedRoutes();
   }, [user]);
 

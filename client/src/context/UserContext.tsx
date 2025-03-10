@@ -31,18 +31,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to fetch or create user profile
   const fetchOrCreateProfile = async (user: User) => {
     if (!user) {
-      console.error("[DEBUG] Cannot create profile for null user");
+      // console.error("[DEBUG] Cannot create profile for null user");
       return null;
     }
     
     try {
-      console.log("[DEBUG] User object received:", JSON.stringify(user, null, 2));
-      console.log("[DEBUG] User ID:", user.id);
-      console.log("[DEBUG] User email:", user.email);
-      console.log("[DEBUG] User metadata:", JSON.stringify(user.user_metadata, null, 2));
+      // console.log("[DEBUG] User object received:", JSON.stringify(user, null, 2));
+      // console.log("[DEBUG] User ID:", user.id);
+      // console.log("[DEBUG] User email:", user.email);
+      // console.log("[DEBUG] User metadata:", JSON.stringify(user.user_metadata, null, 2));
       
       // First, check if auth is working correctly
-      const { data: authData, error: authError } = await supabase.auth.getUser();
+      /* 
       if (authError) {
         console.error("[DEBUG] Auth verification failed:", authError);
       } else {
@@ -52,6 +52,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn("[DEBUG] Warning: Current auth session user ID does not match the user ID we're trying to create a profile for!");
         }
       }
+      */
       
       // Check if profile exists
       let { data: existingProfile, error } = await supabase
