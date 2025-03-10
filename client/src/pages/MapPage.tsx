@@ -38,7 +38,8 @@ const MapPage: React.FC = () => {
   
   // State for calculated routes
   const [calculatedRoutes, setCalculatedRoutes] = useState<{[key: string]: [number, number][]} | null>(null);
-
+  // State for loading animation
+  const [isCalculating, setIsCalculating] = useState<boolean>(false);
   // Add a new handleMapClick function
   const handleMapClick = (lat: number, lng: number) => {
     // Update latitude and longitude state
@@ -126,7 +127,26 @@ const MapPage: React.FC = () => {
       return;
     }
 
+      // Check if any point's demand exceeds the maximum vehicle capacity
+    const maxVehicleCapacity = Math.max(...vehicles.map(v => v.capacity));
+    const pointsWithExcessiveDemand = Locations.filter((point, index) => {
+      // Skip checking the depot point
+      if (index === depotIndex) return false;
+      return point.capacity > maxVehicleCapacity;
+    });
+    
+    if (pointsWithExcessiveDemand.length > 0) {
+      const pointNumbers = pointsWithExcessiveDemand.map((_, index) => 
+        Locations.indexOf(pointsWithExcessiveDemand[index]) + 1
+      ).join(", ");
+      
+      alert(`Point(s) ${pointNumbers} have demand that exceeds the maximum vehicle capacity (${maxVehicleCapacity}). Please adjust the demand or add vehicles with higher capacity.`);
+      return;
+    }
+
     try {
+      // loading state set to true
+      setIsCalculating(true)
       // Format data according to what the backend expects
       const formattedData = {
         locations: Locations.map(loc => [loc.longitude, loc.latitude]),
@@ -230,6 +250,9 @@ const MapPage: React.FC = () => {
         `Server error: ${error.response.status} ${error.response.statusText}` : 
         "Network error or server unavailable";
       alert(`Failed to calculate routes: ${errorMessage}. Check console for details.`);
+    } finally {
+      // loading state set back to false
+      setIsCalculating(false)
     }
   };
 
@@ -555,10 +578,21 @@ const MapPage: React.FC = () => {
               {(Locations.length >= 2 && vehicles.length >= 1) && (
                 <div className="mt-6">
                   <Button 
-                    className="w-full bg-AccYellow hover:bg-yellow-600 text-white shadow-md py-6 text-lg font-semibold transition-all"
+                    className="w-full bg-AccYellow hover:bg-yellow-600 text-white shadow-md py-6 text-lg font-semibold transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                     onClick={handleCalculateRoutes}
+                    disabled={isCalculating}
                   >
-                    Calculate Routes
+                    {isCalculating ? (
+                      <div className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Calculating Routes...
+                      </div>
+                    ) : (
+                      "Calculate Routes"
+                    )}
                   </Button>
                 </div>
               )}
