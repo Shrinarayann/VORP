@@ -13,7 +13,7 @@ def calculate_routes(data,excel_file):
             print(address_list)
         
 
-        locations=geocoding.geoapifyCoding(address_list)
+            locations=geocoding.geoapifyCoding(address_list)
 
         if not excel_file:
             locations = data["locations"]

@@ -2,23 +2,19 @@ import requests
 import time
 import os 
 
-API_KEY = os.getenv['GEOPAPIFY_API_KEY']
+#API_KEY = #os.getenv('GEOPAPIFY_API_KEY')
+API_KEY="483abfe40c7c4393b51a7117d14f1235"
 BASE_URL = "https://api.geoapify.com/v1/batch/geocode/search"
 
 def geoapifyCoding(data):
 
-    data =  [
-        "Chromepet, Chennai, 600044, India",
-        "Marina Beach, Chennai, 600001, India",
-        "MG Road, Bengaluru, 560001, India",
-        "Connaught Place, New Delhi, 110001, India",
-        "Marine Drive, Mumbai, 400020, India",
-        "Juhu Beach, Mumbai, 400049, India",
-        "Hawa Mahal, Jaipur, 302002, India",
-        "Victoria Memorial, Kolkata, 700071, India",
-        "Gateway of India, Mumbai, 400001, India",
-        "Taj Mahal, Agra, 282001, India",
-    ]
+    # data =  [
+    #     "Chromepet, Chennai, 600044, India",
+    #     "Marina Beach, Chennai, 600001, India",
+    #     "MG Road, Bengaluru, 560001, India",
+    #     "Connaught Place, New Delhi, 110001, India",
+    #     "Marine Drive, Mumbai, 400020, India"
+    # ]
 
     #SLEEP_TIME=len(data)//2
 
@@ -72,3 +68,4 @@ def geoapifyCoding(data):
 
     print(lonLatArr)
     return lonLatArr
+
