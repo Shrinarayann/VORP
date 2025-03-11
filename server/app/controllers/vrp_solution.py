@@ -14,7 +14,7 @@ def calculate_routes(data,excel_file):
         
 
             locations=geocoding.geoapifyCoding(address_list)
-            demands=df.iloc[:,-1]
+            demands=list(df.iloc[:,-1])
 
 
         if not excel_file:
