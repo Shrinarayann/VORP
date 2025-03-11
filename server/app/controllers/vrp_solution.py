@@ -14,14 +14,16 @@ def calculate_routes(data,excel_file):
         
 
             locations=geocoding.geoapifyCoding(address_list)
+            demands=df.iloc[:,-1]
+
 
         if not excel_file:
             locations = data["locations"]
         
+            demands = data["demands"]
         num_vehicles = data["num_vehicles"]
         depot = data["depot"]
         vehicle_capacities = data["capacities"]
-        demands = data["demands"]
         
         
         # Convert locations to a list of lists
