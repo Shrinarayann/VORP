@@ -22,7 +22,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
       
       const timeoutId = setTimeout(() => controller.abort(), 15000);
       
-      return fetch(...args, { signal })
+      return fetch(args[0], { ...args[1], signal })
         .finally(() => clearTimeout(timeoutId));
     }
   }
