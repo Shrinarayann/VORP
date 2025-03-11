@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useLocation } from '@/context/LocationContext';
 import { Slider } from '@/components/ui/slider';
-import { ChevronLeft, ChevronRight, Plus, MapPin, Truck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, MapPin, Truck, Route } from 'lucide-react';
 import axios from 'axios';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/auth/supabase';
@@ -28,8 +28,8 @@ const MapPage: React.FC = () => {
   // State for depot selection (index of the chosen point)
   const [depotIndex, setDepotIndex] = useState<number | null>(null);
 
-  // Sidebar tab state: "points" or "vehicles"
-  const [activeTab, setActiveTab] = useState<"points" | "vehicles">("points");
+  // Sidebar tab state: "points" or "vehicles" or "routes"
+  const [activeTab, setActiveTab] = useState<"points" | "vehicles" | "routes">("points");
 
   // State for vehicles details
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -39,9 +39,10 @@ const MapPage: React.FC = () => {
   // For the collapsible saved routes sidebar on the left
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   
-  // Add this state near your other state declarations
+  // State for calculated routes
   const [calculatedRoutes, setCalculatedRoutes] = useState<{[key: string]: [number, number][]} | null>(null);
-
+  // State for loading animation
+  const [isCalculating, setIsCalculating] = useState<boolean>(false);
   // Add these state variables
   const [locationName, setLocationName] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -61,8 +62,11 @@ const MapPage: React.FC = () => {
       }
     }
   };
+  
+  // State to track the selected route
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
 
-  // Function implementations remain unchanged...
+  // Function implementations
   const handleSavedRouteSelect = (route: SavedRoute) => {
     setLocations(route.locations);
     setDepotIndex(null);
@@ -113,6 +117,11 @@ const MapPage: React.FC = () => {
   const handleDeleteVehicle = (id: number) => {
     setVehicles(vehicles.filter(vehicle => vehicle.id !== id));
   };
+  
+  // Handler for when a route is selected
+  const handleRouteSelect = (routeId: string) => {
+    setSelectedRouteId(selectedRouteId === routeId ? null : routeId);
+  };
 
   const handleCalculateRoutes = async () => {
     if (Locations.length < 2) {
@@ -128,7 +137,26 @@ const MapPage: React.FC = () => {
       return;
     }
 
+      // Check if any point's demand exceeds the maximum vehicle capacity
+    const maxVehicleCapacity = Math.max(...vehicles.map(v => v.capacity));
+    const pointsWithExcessiveDemand = Locations.filter((point, index) => {
+      // Skip checking the depot point
+      if (index === depotIndex) return false;
+      return point.capacity > maxVehicleCapacity;
+    });
+    
+    if (pointsWithExcessiveDemand.length > 0) {
+      const pointNumbers = pointsWithExcessiveDemand.map((_, index) => 
+        Locations.indexOf(pointsWithExcessiveDemand[index]) + 1
+      ).join(", ");
+      
+      alert(`Point(s) ${pointNumbers} have demand that exceeds the maximum vehicle capacity (${maxVehicleCapacity}). Please adjust the demand or add vehicles with higher capacity.`);
+      return;
+    }
+
     try {
+      // loading state set to true
+      setIsCalculating(true)
       // Format data according to what the backend expects
       const formattedData = {
         locations: Locations.map(loc => [loc.longitude, loc.latitude]),
@@ -204,6 +232,9 @@ const MapPage: React.FC = () => {
         `Server error: ${error.response.status} ${error.response.statusText}` : 
         "Network error or server unavailable";
       alert(`Failed to calculate routes: ${errorMessage}.`);
+    } finally {
+        // loading state set back to false
+        setIsCalculating(false)
     }
   };
 
@@ -292,6 +323,7 @@ const MapPage: React.FC = () => {
                   calculatedRoutes={calculatedRoutes || {}} 
                   depotIndex={depotIndex} 
                   onMapClick={handleMapClick} 
+                  selectedRouteId={selectedRouteId}
                 />
               </div>
             </div>
@@ -321,6 +353,19 @@ const MapPage: React.FC = () => {
                 >
                   <Truck className="mr-2 h-4 w-4" /> Vehicles
                 </Button>
+                
+                {calculatedRoutes && (
+                  <Button
+                    onClick={() => setActiveTab("routes")}
+                    className={`flex-1 rounded-md font-medium ${
+                      activeTab === "routes" 
+                        ? "bg-LightBlue text-white shadow-md" 
+                        : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                    }`}
+                  >
+                    <ChevronRight className="mr-2 h-4 w-4" /> Routes
+                  </Button>
+                )}
               </div>
 
               {/* Tab Content */}
@@ -496,15 +541,112 @@ const MapPage: React.FC = () => {
                   </div>
                 </div>
               )}
+              
+              {/* Routes Tab Content */}
+              {activeTab === "routes" && calculatedRoutes && (
+                <div className="routes-tab">
+                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                    <h2 className="text-xl font-semibold mb-3 text-gray-800">Calculated Routes</h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Click on a route to highlight it on the map. Routes start and end at the depot.
+                    </p>
+                    
+                    <div className="h-[calc(100vh-350px)] overflow-y-auto pr-1">
+                      {Object.keys(calculatedRoutes).length === 0 ? (
+                        <p className="text-center text-gray-500 py-8 bg-gray-50 rounded-lg">No routes calculated</p>
+                      ) : (
+                        Object.entries(calculatedRoutes).map(([routeId, coordinates]) => {
+                          // Get the points that this route visits (excluding depot repeats)
+                          const visitedPointIndices = coordinates.map(coord => {
+                            // Find the index of the location that matches these coordinates
+                            return Locations.findIndex(loc => 
+                              loc.longitude === coord[0] && 
+                              loc.latitude === coord[1]
+                            );
+                          }).filter(index => index !== -1);
+                          
+                          // Remove duplicate depot visits (first and last point)
+                          if (visitedPointIndices[0] === visitedPointIndices[visitedPointIndices.length - 1]) {
+                            visitedPointIndices.pop();
+                          }
+                          
+                          // Calculate total demand for this route
+                          const totalDemand = visitedPointIndices
+                            .filter(index => index !== depotIndex)
+                            .reduce((sum, index) => sum + Locations[index].capacity, 0);
+                          
+                          // Get the vehicle for this route
+                          const vehicle = vehicles[parseInt(routeId)];
+                          
+                          return (
+                            <div 
+                              key={routeId}
+                              className={`border p-4 w-full rounded-md mb-3 cursor-pointer transition-all ${
+                                selectedRouteId === routeId 
+                                  ? 'bg-blue-100 border-LightBlue ring-2 ring-LightBlue' 
+                                  : 'bg-white hover:bg-gray-100'
+                              }`}
+                              onClick={() => handleRouteSelect(routeId)}
+                            >
+                              <div className="font-medium flex items-center">
+                                <Truck className="h-5 w-5 mr-2 text-LightBlue" />
+                                <span className="text-lg">Vehicle {parseInt(routeId) + 1}</span>
+                              </div>
+                              
+                              <div className="mt-2 flex justify-between">
+                                <div>
+                                  <div className="text-sm text-gray-600">
+                                    <span className="font-medium">Capacity:</span> {vehicle?.capacity || 'N/A'}
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    <span className="font-medium">Load:</span> {totalDemand} 
+                                    ({Math.round((totalDemand / (vehicle?.capacity || 1)) * 100)}%)
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    <span className="font-medium">Points:</span> {visitedPointIndices.length}
+                                  </div>
+                                </div>
+                                
+                                <div className="flex flex-col items-end">
+                                  <div className="text-sm font-medium text-gray-700">Route Details:</div>
+                                  <div className="text-sm text-gray-600">
+                                    {visitedPointIndices.map((index, i) => (
+                                      <span key={i}>
+                                        Point {index + 1}
+                                        {i < visitedPointIndices.length - 1 ? ' → ' : ''}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Calculate Routes Button */}
               {(Locations.length >= 2 && vehicles.length >= 1) && (
                 <div className="mt-6">
                   <Button 
-                    className="w-full bg-AccYellow hover:bg-yellow-600 text-white shadow-md py-6 text-lg font-semibold transition-all"
+                    className="w-full bg-AccYellow hover:bg-yellow-600 text-white shadow-md py-6 text-lg font-semibold transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                     onClick={handleCalculateRoutes}
+                    disabled={isCalculating}
                   >
-                    Calculate Routes
+                    {isCalculating ? (
+                      <div className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Calculating Routes...
+                      </div>
+                    ) : (
+                      "Calculate Routes"
+                    )}
                   </Button>
                 </div>
               )}
