@@ -1,7 +1,8 @@
 import requests
 import time
+import os 
 
-API_KEY = "483abfe40c7c4393b51a7117d14f1235"
+API_KEY = os.getenv['GEOPAPIFY_API_KEY']
 BASE_URL = "https://api.geoapify.com/v1/batch/geocode/search"
 
 def geoapifyCoding(data):

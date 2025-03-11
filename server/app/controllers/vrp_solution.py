@@ -1,25 +1,33 @@
 
 from flask import jsonify
-from ..utils import vrp_solver,distance_matrix
+from ..utils import vrp_solver,distance_matrix,geocoding
 import pandas as pd
 
-def excel_route_solver(excel_file):
-    pass 
-    #Finish the funcitonality
 
-def calculate_routes(data):
-    
+def calculate_routes(data,excel_file):
+
     try:
-        locations = data["locations"]
+        if excel_file:
+            df=pd.read_excel(excel_file).fillna('')
+            address_list = [", ".join(map(str, filter(None, row))) for row in df.itertuples(index=False, name=None)]
+            print(address_list)
+        
+
+        locations=geocoding.geoapifyCoding(address_list)
+
+        if not excel_file:
+            locations = data["locations"]
+        
         num_vehicles = data["num_vehicles"]
         depot = data["depot"]
         vehicle_capacities = data["capacities"]
         demands = data["demands"]
-
+        
+        
         # Convert locations to a list of lists
         osrm_coords = [[lon, lat] for lon, lat in locations]
 
-        print(type(osrm_coords))
+        print(osrm_coords)
 
         dist_matrix=distance_matrix.distance_matrix_calc(osrm_coords)
         print()
