@@ -20,7 +20,7 @@ def solve_vrp():
         solution = vrp_solution.calculate_routes(data,excel_file)
         print('\n\n Solution recieved in routes')
         print(solution)
-        return jsonify(solution)
+        return jsonify(solution),200
     
     else:
         excel_file=None
@@ -41,7 +41,7 @@ def solve_vrp():
         solution = vrp_solution.calculate_routes(data,excel_file)
         print('\n\n Solution recieved in routes')
         print(solution)
-        return jsonify(solution)
+        return jsonify(solution),200
 
 
 

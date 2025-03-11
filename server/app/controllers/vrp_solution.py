@@ -73,7 +73,7 @@ def calculate_routes(data,excel_file):
         print('\n\nFinal Calculated routes')
         print(formatted_routes)
 
-        return {"message": "Success", "calculated_routes": formatted_routes},200
+        return {"message": "Success", "calculated_routes": formatted_routes}
 
     except Exception as e:
         return {"error": str(e)}
